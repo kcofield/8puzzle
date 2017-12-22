@@ -8,115 +8,288 @@ namespace ConsoleApp2
 {
     class Program
     {
-
         static void Main(string[] args)
         {
-            //good spot to call a graphic interface
+            //declare int array to handle moves that are going to be used and added to the 
+            //solutions list
+            //index 0-8 are tile positions, 9 is score, 10 is weather or not the move has 
+            //been parent already so the tree doesn't get stuck in a loop and 11 is the index  
+            //of the moves parent  
+            int[] move = new int[12];
 
-            //declare int array to handle to the move that is being tested
-            int[] move = new int[10];
+            // an array to store the first move until the puzzle is solved
+            int[] firstMove = new int[12];
 
-            //dummy is an array handed when there is no need to back test to make sure a bad 
-            //positionis reused.
-            int[] dummy = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-            //call methode to get unorganized state from the user
+            //call method to get unorganized state from the user
             move = UserInput(move);
 
-            //new moves are compared and the highes scoreing move that hasn't already
-            //been used is added to the solutions list. if all possible moves are previously used
-            //or on the avoid list, highest scoring move is passed to the CompareMove method to evaluated.
-            //this method searches back to find a higher, or next highest score, and modifies the 
-            //solutions list to remove future moves
-            //eg we have moves 1,2,3,4,5,6,7,8,9 and we have to go back to move 4 we want to remove
-            //5,6,7,8,9 from the solutions list. 
-
-
+            //set first move to be the actual first move
+            firstMove = move;
+            //solution tree list
             List<int[]> solution = new List<int[]>();
+
+            //Final Move List list without unused moves
+            List<int[]> finalMoveList = new List<int[]>();
+
+            //2d array used to evaluate the possible moves
+            int[,] possibleMoves = new int[4, 12];
+
+
+            // first move will be a part of parent solution list
+            move[10] = 1;
+
+            //add the starting state to the solutions lisit
             solution.Add(move);
 
+            //each time a move is chosen the index of that move in the solution tree is stored
+            //here and added to the next chosen move to establish a link backwards from the 
+            //solution to the initial state
+            int parentIndex = new int();
 
+            //variable to contain score to determine if organized solution is complete
+            int score = new int();
 
-            //if puzzle is unsolved keep generating solutions.
-            //check if the move has been generated before an if so moves back one position from the first
-            //time it was called and starts again asking the generateMove method not to return that result
-            //again. 
-            // then it removes any moves on the solutions list past the one that let to a solutions loop.
+            //variable to indicate if score has passed 2000 indicating that the top row is complete
+            //and that the Choosemove method should not move those tiles.
+            bool fixTopRow = false;
 
-            while (move[9] < 10000)
+            //establishing an initial score for the while loop to evaluate based on the initial 
+            //state entered by the user
+            score = move[9];
+
+            //keep searching for solution as long as target position isn't achieved
+            while (score < 2300)
             {
-                bool moveIsDuplicate = false;
-                int duplicateIndex = 0;
-                for (int i = 1; i < solution.Count; i++)
+                //method called to get array of possible moves
+                possibleMoves = GenerateMove(move, parentIndex);
+
+                //of the array of possible moves any that are eligible to add
+                // to the solutions list are added
+                solution = AmendSolutionsList(solution, possibleMoves);
+
+                //next move is chosen based on highest scoring not yet used move
+                //fixTopRow is passed to elimiate moving the top row
+                parentIndex = ChooseMove(solution, fixTopRow);
+
+                //once the move is chosen the sub array move 10 is changed to 1 to
+                //indicate that it is being used as a parent
+                solution[parentIndex][10] = 1;
+
+                //if the score of the chosen move is over 2000 change fixTopRow to
+                //true to keep the selection of future moves close to an organized solution
+                if (solution[parentIndex][9] > 2000)
+                {
+                    fixTopRow = true;
+                }
+
+                //score value is updated to most recent move score to inform while loop usage
+                score = solution[parentIndex][9];
+
+                //move is changed to the most recent chosen move and fed back into the while
+                //loop for the next round of possible moves
+                for (int y = 0; y < 12; y++)
+                {
+                    move[y] = solution[parentIndex][y];
+                }
+            }
+
+            //if score indicates puzzle is solved print solution.
+            if (score > 2299)
+            {
+
+                //call the method to remove unused moves
+                finalMoveList = RemoveUnusedMoves(solution, finalMoveList);
+
+                //writing the first move
+                // having the three loops allows for the display of the consol app
+                // to look like the puzzle. 
+                for (int w = 0; w < 3; w++)
+                    {
+                        Console.Write(firstMove[w]);
+                    }
+                    Console.WriteLine();
+                    for (int n = 3; n < 6; n++)
+                    {
+                        Console.Write(firstMove[n]);
+                    }
+                    Console.WriteLine();
+                    for (int m = 6; m < 9; m++)
+                    {
+                        Console.Write(firstMove[m]);
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine();
+
+                //for each move array in the final moves list print the array
+
+                for (int i = 0; i < finalMoveList.Count; i++)
+                {
+                    for (int t = 0; t < 3; t++)
+                    {
+                        Console.Write(finalMoveList[i][t]);
+                    }
+                    Console.WriteLine();
+                    for (int t = 3; t < 6; t++)
+                    {
+                        Console.Write(finalMoveList[i][t]);
+                    }
+                    Console.WriteLine();
+                    for (int t = 6; t < 9; t++)
+                    {
+                        Console.Write(finalMoveList[i][t]);
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine();
+
+                }
+
+                // uncomment this and comment the section above if you want a single line display
+                //for (int i = 0; i < finalMoveList.Count; i++)
+                //{
+                //    for (int t = 0; t < 9; t++)
+                //    {
+                //        Console.Write(finalMoveList[i][t]);
+                //    }
+                //    Console.WriteLine();
+                //}
+
+                    Console.ReadKey();
+
+            }
+        }
+
+        // method for returing a list of moves that are used and removing the 
+        // ones that aren't used. solution list and finalmoveslist are both 
+        // passed in and finalmovelist / finallist is returned
+        public static List<int[]> RemoveUnusedMoves(List<int[]> solutiontree, List<int[]> finalList)
+        {
+            // Each move array is stored in the solution list - 
+            // In the move array the index of the parent move (on the solutioin list) 
+            // is stored at index 11-
+            //previousParent is created to tell the function which is the next move to add
+            //to the finalList
+            int previousParent = new int();
+
+            // this loop finds the organized state and sets the move array index 11 as
+            // previousParent so the method knows where to look for the next move
+            // the organized state is added to the final list since the loop to count 
+            // back starts with the organized moves parent
+            for(int a = 0; a < solutiontree.Count; a++)
+            {
+                if(solutiontree[a][9]==2300)
+                {
+                    previousParent = solutiontree[a][11];
+                    finalList.Add(solutiontree[a]);
+                    break;
+                }
+            }
+
+            // moving backwards from the final move's parent to the first move and adding
+            // each of the moves to the finalList
+            while(previousParent > 0)
+            {
+                finalList.Add(solutiontree[previousParent]);
+                previousParent = solutiontree[previousParent][11];
+            }
+
+            // the final List is started at the organized state then formed by moving 
+            // backwards to the original state. here the final list is reversed so it
+            // shows moves from first to last
+            finalList.Reverse();
+
+            return finalList;
+        }
+
+        //method for choosing the next moove and returning the index of that move
+        public static int ChooseMove(List<int[]> solutions, bool fixTopRow)
+        {
+            //index of the chosen high score
+            int parentIndex = new int();
+
+            //variable established to evaluate high score
+            int highScore = new int();
+
+            //if the top row is not organized find highest score
+            if (fixTopRow == false)
+            {
+                for (int i = 0; i < solutions.Count; i++)
+                {
+                    if (solutions[i][9] > highScore && solutions[i][10] != 1)
+                    {
+                        highScore = solutions[i][9];
+                        parentIndex = i;
+                    }
+                }
+            }
+
+            //if top row is organized use the highest score with an organized top row
+            if (fixTopRow == true)
+            {
+                for (int i = 0; i < solutions.Count; i++)
+                {
+                    if (solutions[i][9] > highScore && solutions[i][10] != 1 && solutions[i][9] >= 2000)
+                    {
+                        highScore = solutions[i][9];
+                        parentIndex = i;
+                    }
+                }
+            }
+            return parentIndex;
+        }
+
+        //Method to determin if possible moves are valid moves and add them to the solutions tree
+        //if they haven't been used already
+        public static List<int[]> AmendSolutionsList(List<int[]> solutionTree, int[,] scoredMoves)
+        {
+            //check to make sure the move hasn't been used already
+            for (int i = 0; i < solutionTree.Count; i++)
+            {
+                for (int j = 0; j < 4; j++)
                 {
                     int count = 0;
-                    for (int t = 0; t < 9; t++)
+                    for (int k = 0; k < 10; k++)
                     {
-                        if (move[t] == solution[i][t])
+                        if (solutionTree[i][k] == scoredMoves[j, k])
                         {
                             count++;
                         }
-                        if (count == 9)
+                        if (count == 10)
                         {
-                            moveIsDuplicate = true;
-                            duplicateIndex = i;
-
-                            break;
+                            scoredMoves[j, 9] = 9;
                         }
                     }
-                    if (moveIsDuplicate == true)
-                    {
-                        break;
-                    }
-                }
-                if (moveIsDuplicate == true)
-                {
-                    move = GenerateMove(solution[duplicateIndex - 1], move);
-                    Console.WriteLine("calling for a non repeating solution");
-                }
-                if (moveIsDuplicate == false)
-                {
-                    solution.Add(move);
-                    move = GenerateMove(move, dummy);
-                    for (int u = 0; u < 10; u++)
-                    {
-                        Console.Write(move[u]);
-                    }
-                    Console.WriteLine();
-                    Console.WriteLine("calling for next move");
-                    Console.ReadKey();
                 }
             }
-            //if score indicates puzzle is solved print solution.
-            if (move[9] >= 10000)
+
+            //if move hasn't been used already and it's a valid move add it to the solution list
+            for (int v = 0; v < 4; v++)
             {
-                Console.WriteLine(solution.Count);
-                //this is a logic only excersise if you wanted to add an animation or finished image
-                //this would be the place call put.
-
-                //for each move array in the solution list print the array
-                for (int i = 0; i < solution.Count; i++)
+                //default score of move array is 9 so if it is still 9 the move is void and not 
+                //eligible to add to the solution list
+                if (scoredMoves[v, 10] != 1 && scoredMoves[v, 9] != 9)
                 {
-                    for (int t = 0; t < 9; t++)
+                    int[] addalbeMove = new int[12];
+                    for (int l = 0; l < 12; l++)
                     {
-                        Console.Write(solution[i][t]);
+                        addalbeMove[l] = scoredMoves[v, l];
                     }
-                    Console.WriteLine();
-                    Console.ReadKey();
+                    solutionTree.Add(addalbeMove);
                 }
-                Console.ReadKey();
             }
 
+            return solutionTree;
         }
 
+        //method to get disorganized state from the user
         public static int[] UserInput(int[] Start)
         {
-            //here we get the initial starting point from the user
+            //variable declared to for testing if state is a valid state
             bool validEntry = false;
 
             //the while loop keeps the user at the input stage until a valid entry is submitted
             while (validEntry == false)
             {
+                //instructions for the user
                 Console.WriteLine("Please enter the numbers");
                 Console.WriteLine("0 through 8 and hit Enter");
                 Console.WriteLine("be sure to use each number");
@@ -127,40 +300,35 @@ namespace ConsoleApp2
 
                 int testCount = 0;
 
-
-
-
-                //starting position is converted from a character string '876543210' to an int32(number) 
-                //array [8,7,6,5,4,3,2,1,0]. First position is scored and added to the solutions list.
-                //First position is returned to the main method to be handed off to the GenerateMove method
-                //Start[] has 10 positions so that the score can be kept with the move on the used
-                //moves list. 
-
-                //check to see if the entered string contains 0 through 8 then convert to int array
+                //First position is scored and added to the solutions list.
 
                 if (getStart.Length == 9)
                 {
+                    //starting position is converted from a character string '876543210' to an int32(number) 
+                    //array [8,7,6,5,4,3,2,1,0]. 
                     for (int i = 0; i < 9; i++)
                     {
                         Start[i] = Convert.ToInt32(getStart[i] - '0');
                     }
+
+                    //check to see if the entered string contains 0 through 8 and that it contains 9 character
                     for (int z = 0; z < 9; z++)
                     {
-
                         for (int t = 0; t < 9; t++)
                         {
                             if (Start[z] == testList[t])
                             {
                                 testCount++;
-
                             }
                         }
                     }
+
+                    //if the move passes the length and complexity test its scored and returned
                     if (testCount == 9)
                     {
                         validEntry = true;
                         Heuristic(Start);
-
+                        Start[11] = 0;
                     }
 
                     //incorrect starting position is rejected
@@ -169,7 +337,6 @@ namespace ConsoleApp2
                         Console.WriteLine("Must contain the numbers 0-8");
                         Console.ReadKey();
                     }
-
                 }
 
                 //incorrect starting position is rejected
@@ -178,14 +345,18 @@ namespace ConsoleApp2
                     Console.WriteLine("Must be nine didgets.");
                     Console.ReadKey();
                 }
-
             }
+
+            //First position is returned to the main method to be handed off to the GenerateMove method
             return Start;
         }
+
+        //Method for returning a score based on board positions
         public static int[] Heuristic(int[] unscoredMove)
         {
-
             //This is the scoring hueristic. Writen specifically for an 8-puzzle (as opposed to an n-puzzle).
+            //it's not exactly a manhattan distance it prioritizes positions that close to a solution
+            // it is not efficient the manhattan distace is easy and boring this is fun to play with
 
             //Points are awarded for getting closer the the goal position 
             // corner, edge, center (number moves from goal position)
@@ -207,7 +378,7 @@ namespace ConsoleApp2
 
             //points are also awarded for achieving certain 
             //subset positions effectively locking in that subset and reduce the options going forward.
-            //An N-puzzle only needs to be a 2x3 grid to be solvable so anytime a row (or column) is solved
+            //A solvable N-puzzle only needs to be a 2x3 grid to be solvable so anytime a outside row (or column) is solved
             //we can insentivise the maintenence of those subsets, no matter how large the puzzle, and
             //eliminate the need to touch those pieces again as long as the remaining unorganized set is
             //at least 2x3.
@@ -227,7 +398,6 @@ namespace ConsoleApp2
             //for a final solution.
 
             //this hueristic only checks for a score adds it to the move and returns.
-            int[] scoredMove = new int[10];
             int score = 0;
 
             //once the eight tile is in the right spot it doesn't need to move again
@@ -253,140 +423,143 @@ namespace ConsoleApp2
                     score = score + 300;
                 }
             }
+
             //points for distance away from 8's goal position
             if (unscoredMove[1] == 8 || unscoredMove[3] == 8)
             {
-                score = score + 4;
+                score = score + 200;
             }
             if (unscoredMove[6] == 8 || unscoredMove[4] == 8 || unscoredMove[2] == 8)
             {
-                score = score + 3;
+                score = score + 150;
             }
             if (unscoredMove[7] == 8 || unscoredMove[5] == 8)
             {
-                score = score + 2;
-            }
-
-            //points away from 6's goal position
-            if (unscoredMove[2] == 6)
-            {
-                score = score + 4;
-            }
-            if (unscoredMove[1] == 6 || unscoredMove[5] == 6)
-            {
-                score = score + 3;
-            }
-            if (unscoredMove[0] == 6 || unscoredMove[4] == 6 || unscoredMove[8] == 6)
-            {
-                score = score + 2;
-            }
-            if (unscoredMove[7] == 6 || unscoredMove[3] == 6)
-            {
-                score = score + 1;
-            }
-
-            //points away from 2's goal position
-            if (unscoredMove[6] == 2)
-            {
-                score = score + 4;
-            }
-            if (unscoredMove[3] == 2 || unscoredMove[7] == 2)
-            {
-                score = score + 3;
-            }
-            if (unscoredMove[0] == 2 || unscoredMove[4] == 2 || unscoredMove[8] == 2)
-            {
-                score = score + 2;
-            }
-            if (unscoredMove[1] == 2 || unscoredMove[5] == 2)
-            {
-                score = score + 1;
+                score = score + 100;
             }
 
             //points away from 7's goal position
             if (unscoredMove[1] == 7)
             {
-                score = score + 4;
+                score = score + 50;
             }
-            if (unscoredMove[0] == 7 || unscoredMove[2] == 7 || unscoredMove[4] == 7)
+            if (unscoredMove[4] == 7 || unscoredMove[2] == 7 || unscoredMove[0] == 7)
             {
-                score = score + 3;
+                score = score + 40;
             }
-            if (unscoredMove[3] == 7 || unscoredMove[5] == 7 || unscoredMove[7] == 7)
+            if (unscoredMove[7] == 7 || unscoredMove[5] == 7 || unscoredMove[3] == 7)
             {
-                score = score + 2;
+                score = score + 30;
+            }
+
+            //points away from 6's goal position
+            if (unscoredMove[2] == 6)
+            {
+                score = score + 50;
+            }
+            if (unscoredMove[1] == 6 || unscoredMove[5] == 6)
+            {
+                score = score + 40;
+            }
+            if (unscoredMove[8] == 6 || unscoredMove[4] == 6 || unscoredMove[0] == 6)
+            {
+                score = score + 30;
+            }
+            if (unscoredMove[7] == 6 || unscoredMove[3] == 6)
+            {
+                score = score + 10;
+            }
+
+            //points away from 5's goal position
+            if (unscoredMove[3] == 5)
+            {
+                score = score + 40;
+            }
+            if (unscoredMove[6] == 5 || unscoredMove[4] == 5 || unscoredMove[0] == 5)
+            {
+                score = score + 30;
+            }
+            if (unscoredMove[7] == 5 || unscoredMove[5] == 5 || unscoredMove[1] == 5)
+            {
+                score = score + 20;
+            }
+
+            //points away from 4's goal position
+            if (unscoredMove[4] == 4)
+            {
+                score = score + 40;
+            }
+            if (unscoredMove[1] == 4 || unscoredMove[3] == 4 || unscoredMove[5] == 4 || unscoredMove[7] == 4)
+            {
+                score = score + 30;
             }
 
             //points away from 3's goal position
             if (unscoredMove[5] == 3)
             {
-                score = score + 4;
+                score = score + 40;
             }
             if (unscoredMove[2] == 3 || unscoredMove[4] == 3 || unscoredMove[8] == 3)
             {
-                score = score + 3;
+                score = score + 30;
             }
             if (unscoredMove[1] == 3 || unscoredMove[3] == 3 || unscoredMove[7] == 3)
             {
-                score = score + 2;
+                score = score + 20;
+            }
+
+            //points away from 2's goal position
+            if (unscoredMove[6] == 2)
+            {
+                score = score + 40;
+            }
+            if (unscoredMove[7] == 2 || unscoredMove[3] == 2)
+            {
+                score = score + 30;
+            }
+            if (unscoredMove[8] == 2 || unscoredMove[4] == 2 || unscoredMove[0] == 2)
+            {
+                score = score + 20;
+            }
+            if (unscoredMove[1] == 2 || unscoredMove[5] == 2)
+            {
+                score = score + 10;
             }
 
             //points away from 1's goal position
             if (unscoredMove[7] == 1)
             {
-                score = score + 4;
+                score = score + 40;
             }
             if (unscoredMove[6] == 1 || unscoredMove[4] == 1 || unscoredMove[8] == 1)
             {
-                score = score + 3;
+                score = score + 30;
             }
             if (unscoredMove[1] == 1 || unscoredMove[3] == 1 || unscoredMove[5] == 1)
             {
-                score = score + 2;
+                score = score + 20;
             }
 
-            //points away from 5's goal position
-            if (unscoredMove[7] == 5)
-            {
-                score = score + 4;
-            }
-            if (unscoredMove[6] == 5 || unscoredMove[4] == 5 || unscoredMove[0] == 5)
-            {
-                score = score + 3;
-            }
-            if (unscoredMove[1] == 5 || unscoredMove[7] == 5 || unscoredMove[5] == 5)
-            {
-                score = score + 2;
-            }
-
-            //points away from 4's goal position
-
-            if (unscoredMove[4] == 4)
-            {
-                score = score + 4;
-            }
-            if (unscoredMove[1] == 4 || unscoredMove[3] == 4 || unscoredMove[5] == 4 || unscoredMove[7] == 4)
-            {
-                score = score + 3;
-            }
-            if (unscoredMove[0] == 4 || unscoredMove[2] == 4 || unscoredMove[6] == 4 || unscoredMove[8] == 4)
-            {
-                score = score + 2;
-            }
+            //update the move being scored to include final score
             unscoredMove[9] = score;
+
+            //returns move with score
             return unscoredMove;
         }
-        public static int[] GenerateMove(int[] lastMove, int[] dontRepeat)
+
+        //Method for generating possible moves passes in the last chosen move
+        //as well as the index for that move. new moves are scored and parentindex
+        //is added so the solution can be printed.
+        public static int[,] GenerateMove(int[] lastMove, int parentIndex)
         {
-            //Pass in the most recent move
-
-            //any board arangement can create between two and four new position
             //below a new array is formed for each new possible position
-            int[] newMoveOne = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            int[] newMoveTwo = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            int[] newMoveThree = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            int[] newMoveFour = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            int[] newMoveOne = new int[12] { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, parentIndex };
+            int[] newMoveTwo = new int[12] { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, parentIndex };
+            int[] newMoveThree = new int[12] { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, parentIndex };
+            int[] newMoveFour = new int[12] { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0, parentIndex };
 
+            //array is declared to hold possible moves
+            int[,] returnMoves = new int[4, 12];
 
             //Moves are determined by which possition in the array 0 occupies
             //0 can change places with positions above or below and to the left or right.
@@ -411,6 +584,7 @@ namespace ConsoleApp2
                     {
                         newMoveOne[x] = lastMove[x];
                     }
+
                     //switch 0 position with the number at the index of 0 plus 3
                     for (int y = 0; y < 6; y++)
                     {
@@ -420,23 +594,11 @@ namespace ConsoleApp2
                             newMoveOne[y] = lastMove[y + 3];
                         }
                     }
+
                     //score position
                     Heuristic(newMoveOne);
-                    int count = 0;
-                    for (int t = 0; t < 9; t++)
-                    {
-                        if (newMoveOne[t] == dontRepeat[t])
-                        {
-                            count++;
-                        }
-                    }
-                    if (count == 9)
-                    {
-                        newMoveOne[9] = 0;
-                    }
-
-
                 }
+
                 //positions 3-8 can move up -3
                 if (i > 2 && lastMove[i] == 0)
                 {
@@ -445,8 +607,9 @@ namespace ConsoleApp2
                     {
                         newMoveTwo[x] = lastMove[x];
                     }
+
                     //switch 0 position with the number at the index of 0 minus 3
-                    for (int y = 0; y < 9; y++)
+                    for (int y = 3; y < 9; y++)
                     {
                         if (lastMove[y] == 0)
                         {
@@ -454,33 +617,23 @@ namespace ConsoleApp2
                             newMoveTwo[y] = lastMove[y - 3];
                         }
                     }
+
                     //score position
                     Heuristic(newMoveTwo);
-                    int count = 0;
-                    for (int t = 0; t < 9; t++)
-                    {
-                        if (newMoveTwo[t] == dontRepeat[t])
-                        {
-                            count++;
-                        }
-                    }
-                    if (count == 9)
-                    {
-                        newMoveTwo[9] = 0;
-                    }
-
                 }
-                //all positions can move right exept those that have a remainder of zero when you
+
+                //all positions can move left exept those that have a remainder of zero when you
                 // % by 3 (0,3,6)
-                if (i % 3 != 0 && lastMove[i] == 0)
+                if ((i % 3) != 0 && lastMove[i] == 0)
                 {
                     //fill new move array with last move
                     for (int x = 0; x < 9; x++)
                     {
                         newMoveThree[x] = lastMove[x];
                     }
+
                     //switch 0 position with the number at the index of 0 minus 1
-                    for (int y = 0; y < 9; y++)
+                    for (int y = 1; y < 9; y++)
                     {
                         if (lastMove[y] == 0)
                         {
@@ -488,22 +641,11 @@ namespace ConsoleApp2
                             newMoveThree[y] = lastMove[y - 1];
                         }
                     }
+
                     //score position
                     Heuristic(newMoveThree);
-                    int count = 0;
-                    for (int t = 0; t < 9; t++)
-                    {
-                        if (newMoveThree[t] == dontRepeat[t])
-                        {
-                            count++;
-                        }
-                    }
-                    if (count == 9)
-                    {
-                        newMoveThree[9] = 0;
-                    }
-
                 }
+
                 //all positions can move left except those that have a remainder of zero when you 
                 //add one to the index and % 3 (2,5,8)
                 if ((i + 1) % 3 != 0 && lastMove[i] == 0)
@@ -513,6 +655,7 @@ namespace ConsoleApp2
                     {
                         newMoveFour[x] = lastMove[x];
                     }
+
                     //switch 0 position with the number at the index of 0 plus 1
                     for (int y = 0; y < 9; y++)
                     {
@@ -522,56 +665,32 @@ namespace ConsoleApp2
                             newMoveFour[y] = lastMove[y + 1];
                         }
                     }
+
                     //score position
                     Heuristic(newMoveFour);
-                    int count = 0;
-                    for (int t = 0; t < 9; t++)
-                    {
-                        if (newMoveFour[t] == dontRepeat[t])
-                        {
-                            count++;
-                        }
-                    }
-                    if (count == 9)
-                    {
-                        newMoveFour[9] = 0;
-                    }
-
                 }
             }
-            //after new moves have been calculated and scores returned the highest scoring move
-            //is returned to the method that called it. 
-            //some are marked as > and some as >= in case of a tying score
-            if (newMoveOne[9] >= newMoveTwo[9] && newMoveOne[9] >= newMoveThree[9] && newMoveOne[9] >= newMoveFour[9])
+
+            //add each of the new moves to an array to return to the main method
+            for (int k = 0; k < 12; k++)
             {
-                Console.WriteLine("return move one");
-                Console.ReadKey();
-                return newMoveOne;
+                returnMoves[0, k] = newMoveOne[k];
             }
-            else if (newMoveTwo[9] > newMoveOne[9] && newMoveTwo[9] >= newMoveThree[9] && newMoveTwo[9] >= newMoveFour[9])
+            for (int k = 0; k < 12; k++)
             {
-                Console.WriteLine("return move two");
-                Console.ReadKey();
-                return newMoveTwo;
+                returnMoves[1, k] = newMoveTwo[k];
             }
-            else if (newMoveThree[9] > newMoveTwo[9] && newMoveThree[9] > newMoveOne[9] && newMoveThree[9] >= newMoveFour[9])
+            for (int k = 0; k < 12; k++)
             {
-                Console.WriteLine("return move three");
-                Console.ReadKey();
-                return newMoveThree;
+                returnMoves[2, k] = newMoveThree[k];
             }
-            else if (newMoveFour[9] > newMoveTwo[9] && newMoveFour[9] > newMoveThree[9] && newMoveFour[9] > newMoveOne[9])
+            for (int k = 0; k < 12; k++)
             {
-                Console.WriteLine("return move four");
-                Console.ReadKey();
-                return newMoveFour;
+                returnMoves[3, k] = newMoveFour[k];
             }
-            else
-            {
-                Console.WriteLine("return error");
-                Console.ReadKey();
-                return dontRepeat;
-            }
+
+            //return new moves options
+            return returnMoves;
         }
     }
 }
