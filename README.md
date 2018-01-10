@@ -20,12 +20,12 @@ $> dotnet run
 
 User can enter a disorganized state with with the numbers 0-8 in mixed up order.
 The goal state for this puzzle is in text is 876543210.  Graphically:
-| | | |
+| = | = | = |
 | --- | --- | --- |
 | 8 | 7 | 6 |
 | 5 | 4 | 3 |
 | 2 | 1 | 0 |
-| | |
+| | | |
 
 The most moves required to solve an 8puzzle is 31. The two states that are 31 moves out are 132745608 and 352140678.
 
