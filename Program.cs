@@ -12,7 +12,7 @@ namespace ConsoleApp2
         {
             //declare int array to handle moves that are going to be used and added to the 
             //solutions list
-            //index 0-8 are tile positions, 9 is score, 10 is weather or not the move has 
+            //index 0-8 are tile positions, 9 is score, 10 is whether or not the move has 
             //been parent already so the tree doesn't get stuck in a loop and 11 is the index  
             //of the moves parent  
             int[] move = new int[12];
